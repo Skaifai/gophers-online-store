@@ -6,6 +6,8 @@ import (
 	"flag"
 	"github.com/Skaifai/gophers-online-store/internal/data"
 	"github.com/Skaifai/gophers-online-store/internal/jsonlog"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 	"os"
 	"sync"
 	"time"
@@ -13,7 +15,6 @@ import (
 
 const version = "1.0"
 
-// Config structure contains all the important and reusable data we will need for the API
 type config struct {
 	port int
 	env  string
@@ -45,14 +46,18 @@ type application struct {
 	wg sync.WaitGroup
 }
 
+func envVariable(key string) string {
+	godotenv.Load()
+	return os.Getenv(key)
+}
+
 func main() {
-	// Create
 	var cfg config
 	flag.IntVar(&cfg.port, "port", 7000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
 	// Get the database connection string, aka data source name (DSN)
-	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("DSN2"), "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", envVariable("DB_URL"), "PostgreSQL DSN")
 
 	// Set up restrictions for the database connections
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
@@ -63,6 +68,9 @@ func main() {
 	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
+
+	// Below will me smtp-server connection
+	// smtp
 
 	flag.Parse()
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
