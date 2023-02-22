@@ -46,7 +46,7 @@ type application struct {
 	wg sync.WaitGroup
 }
 
-func envVariable(key string) string {
+func getEnvVar(key string) string {
 	godotenv.Load()
 	return os.Getenv(key)
 }
@@ -57,7 +57,7 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
 	// Get the database connection string, aka data source name (DSN)
-	flag.StringVar(&cfg.db.dsn, "db-dsn", envVariable("DB_URL"), "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", getEnvVar("DB_URL"), "PostgreSQL DSN")
 
 	// Set up restrictions for the database connections
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
