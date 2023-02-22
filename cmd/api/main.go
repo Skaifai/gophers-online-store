@@ -2,7 +2,10 @@ package main
 
 import (
 	"flag"
+	"github.com/Skaifai/gophers-online-store/internal/data"
+	"github.com/Skaifai/gophers-online-store/internal/jsonlog"
 	"os"
+	"sync"
 )
 
 const version = "1.0"
@@ -17,16 +20,26 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  string
 	}
-
 	limiter struct {
+		enabled bool
 		rps     float64
 		burst   int
-		enabled bool
+	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
 	}
 }
 
 type application struct {
 	config config
+	logger *jsonlog.Logger
+	models data.Models
+	// mailer mailer.Mailer  not ready yet
+	wg sync.WaitGroup
 }
 
 func main() {
