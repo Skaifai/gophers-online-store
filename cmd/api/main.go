@@ -6,6 +6,7 @@ import (
 	"flag"
 	"github.com/Skaifai/gophers-online-store/internal/data"
 	"github.com/Skaifai/gophers-online-store/internal/jsonlog"
+	"github.com/Skaifai/gophers-online-store/internal/mailer"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"os"
@@ -42,8 +43,8 @@ type application struct {
 	config config
 	logger *jsonlog.Logger
 	models data.Models
-	// mailer mailer.Mailer  not ready yet
-	wg sync.WaitGroup
+	mailer mailer.Mailer
+	wg     sync.WaitGroup
 }
 
 func getEnvVar(key string) string {
@@ -90,7 +91,7 @@ func main() {
 		config: cfg,
 		logger: logger,
 		models: data.NewModels(db),
-		// mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
 	err = app.serve()
