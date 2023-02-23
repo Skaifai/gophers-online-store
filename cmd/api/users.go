@@ -194,3 +194,35 @@ func (app *application) authenticateUserHandler(w http.ResponseWriter, r *http.R
 	// Token Part
 
 }
+
+func (app *application) logoutUserHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (app *application) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	err = app.models.Users.Delete(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": "user successfully deleted"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) changeMyPasswordHandler(w http.ResponseWriter, r *http.Request) {
+
+}
