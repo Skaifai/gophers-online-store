@@ -23,6 +23,15 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 	return id, nil
 }
 
+func (app *application) readUUIDParam(r *http.Request) (string, error) {
+	params := httprouter.ParamsFromContext(r.Context())
+	uuid := params.ByName("uuid")
+	if len(uuid) == 0 {
+		return "", errors.New("invalid uuid parameter")
+	}
+	return uuid, nil
+}
+
 func (app *application) writeJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 	js, err := json.Marshal(data)
 	if err != nil {
