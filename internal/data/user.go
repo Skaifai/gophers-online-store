@@ -123,3 +123,42 @@ func (u UserModel) Insert(user *User) error {
 	}
 	return nil
 }
+
+func (u UserModel) Get(id int64) (*User, error) {
+	query := `
+	SELECT id, role, username, email, phone_number, registration_date, 
+	       name, surname, date_of_birth, address, about_me, picture_url, 
+	       activated
+	FROM users
+	WHERE id = $1`
+
+	var user User
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := u.DB.QueryRowContext(ctx, query, id).Scan(
+		&user.ID,
+		&user.Role,
+		&user.Username,
+		&user.Email,
+		&user.PhoneNumber,
+		&user.RegistrationDate,
+		&user.Name,
+		&user.Surname,
+		&user.DOB,
+		&user.Address,
+		&user.AboutMe,
+		&user.PictureURL,
+		&user.Activated,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+	return &user, nil
+}

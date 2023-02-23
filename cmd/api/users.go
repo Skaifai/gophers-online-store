@@ -62,7 +62,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	uuidCode := strings.Replace(uuid.New().String(), "-", "", -1)
-	// err = app.models.Activations.Insert(user, uuidCode)
+	err = app.models.ActivationLinks.Insert(user, uuidCode)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -80,6 +80,48 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		}
 	})
 	err = app.writeJSON(w, http.StatusAccepted, envelope{"user": user}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+	uuidParam, err := app.readUUIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	activationLink, err := app.models.ActivationLinks.Get(uuidParam)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	user, err := app.models.Users.Get(activationLink.UserID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	if uuidParam == activationLink.Link {
+		user.Activated = true
+		activationLink.Activated = true
+	} else {
+		app.badRequestResponse(w, r, err)
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
