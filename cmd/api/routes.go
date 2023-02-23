@@ -18,6 +18,9 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/auth/logout", app.logoutUserHandler)
 
 	router.HandlerFunc(http.MethodGet, "/v1/users/activate/:uuid", app.activateUserHandler)
+
+	router.HandlerFunc(http.MethodGet, "/v1/users/:id", app.showUserHandler)
+	router.HandlerFunc(http.MethodPatch, "/v1/users/:id", app.updateUserHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/users/:id", app.deleteUserHandler)
 
 	return router

@@ -199,6 +199,113 @@ func (app *application) logoutUserHandler(w http.ResponseWriter, r *http.Request
 
 }
 
+func (app *application) showUserHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	user, err := app.models.Users.GetById(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	user, err := app.models.Users.GetById(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	var input struct {
+		Role        *string    `json:"role"`
+		Username    *string    `json:"username"`
+		Email       *string    `json:"email"`
+		PhoneNumber *string    `json:"phone_number"`
+		Password    *string    `json:"password"`
+		Name        *string    `json:"name"`
+		Surname     *string    `json:"surname"`
+		DOB         *time.Time `json:"date_of_birth"`
+		Address     *string    `json:"address"`
+		AboutMe     *string    `json:"about_me"`
+		PictureURL  *string    `json:"picture_url"`
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if input.Role != nil {
+		user.Role = data.RoleType(*input.Role)
+	}
+	if input.Username != nil {
+		user.Username = *input.Username
+	}
+	if input.Email != nil {
+		user.Email = *input.Email
+	}
+	if input.PhoneNumber != nil {
+		user.PhoneNumber = *input.PhoneNumber
+	}
+	if input.Password != nil {
+		user.Password.Set(*input.Password)
+	}
+	if input.Name != nil {
+		user.Name = *input.Name
+	}
+	if input.Surname != nil {
+		user.Surname = *input.Surname
+	}
+	if input.DOB != nil {
+		user.DOB = *input.DOB
+	}
+	if input.Address != nil {
+		user.Address = *input.Address
+	}
+	if input.AboutMe != nil {
+		user.AboutMe = *input.AboutMe
+	}
+	if input.PictureURL != nil {
+		user.PictureURL = *input.PictureURL
+	}
+
+	err = app.models.Users.Update(user)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
 func (app *application) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
@@ -221,8 +328,4 @@ func (app *application) deleteUserHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
-}
-
-func (app *application) changeMyPasswordHandler(w http.ResponseWriter, r *http.Request) {
-
 }
