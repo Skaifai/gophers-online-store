@@ -1,7 +1,9 @@
 package data
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -20,15 +22,14 @@ type TokenModel struct {
 	DB *sql.DB
 }
 
-func GenerateTokens(userID int64) (map[string]string, error) {
-	// refreshToken := jwt.New(jwt.SigningMethodHS512)
-	// refreshClaims := refreshToken.Claims.(jwt.MapClaims)
-	// refreshClaims["user_id"] = userID
-	// refreshClaims["exp"] = time.Now().Add(time.Hour * 24 * 30).Unix()
-
+func GenerateTokens(userID int64, username string) (*Token, error) {
+	token := Token{
+		UserID: userID,
+	}
 	refreshClaims := jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 24 * 30).Unix(),
+		"user_id":  userID,
+		"username": username,
+		"exp":      time.Now().Add(time.Hour * 24 * 30).Unix(),
 	}
 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS512, refreshClaims)
@@ -36,12 +37,12 @@ func GenerateTokens(userID int64) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	tokensMap := make(map[string]string)
-	tokensMap["refreshToken"] = refreshTokenString
+	token.RefreshToken = refreshTokenString
 
 	accessClaims := jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 4).Unix(),
+		"user_id":  userID,
+		"username": username,
+		"exp":      time.Now().Add(time.Hour * 4).Unix(),
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS512, accessClaims)
 	accessTokenString, err := accessToken.SignedString([]byte(os.Getenv("ACCESS_SK")))
@@ -49,22 +50,123 @@ func GenerateTokens(userID int64) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	tokensMap["accessToken"] = accessTokenString
-	return tokensMap, nil
+	token.AccessToken = accessTokenString
+	return &token, nil
 }
 
-func (t TokenModel) SaveToken(userID int64, refreshToken string) {
-	//find token, if exists => save
-	//token does not exist => create new token => generateTokens(userID64)
-	//save refreshTOken
+func (t TokenModel) SaveToken(token *Token) error {
+	token, err := t.FindTokenByUserId(token.UserID)
+	if err != nil {
+		return err
+	}
+
+	if token != nil {
+		t.UpdateToken(token)
+	}
+
+	query := `INSERT INTO tokens (refresh_token, user_id)
+				 VALUES ('$1', $2)
+				 RETURNING id;`
+
+	args := []any{token.RefreshToken, token.UserID}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err = t.DB.QueryRowContext(ctx, query, args...).Scan(&token.ID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (t TokenModel) RemoveToken(refreshToken string) {
+func (t TokenModel) RemoveToken(refreshToken string) error {
+	if refreshToken == "" {
+		return ErrRecordNotFound
+	}
+	query := `DELETE FROM tokens WHERE refresh_token='$1';`
 
+	result, err := t.DB.Exec(query, refreshToken)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+
+	return nil
 }
 
-func (t TokenModel) FindToken(refreshToken string) {
+func (t TokenModel) UpdateToken(token *Token) error {
+	query := `UPDATE tokens SET refresh_token = '$1' WHERE user_id = $2 AND id = $3`
 
+	args := []any{token.RefreshToken, token.UserID, token.ID}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := t.DB.QueryRowContext(ctx, query, args...).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t TokenModel) FindTokenByUserId(UserID int64) (*Token, error) {
+	query := `SELECT id, user_id, refresh_token FROM tokens WHERE user_id = $1`
+
+	var token Token
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := t.DB.QueryRowContext(ctx, query, UserID).Scan(
+		&token.ID,
+		&token.UserID,
+		&token.RefreshToken,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &token, nil
+}
+
+func (t TokenModel) FindToken(refreshToken string) (*Token, error) {
+	query := `SELECT id, user_id, refresh_token FROM tokens WHERE refresh_token = $1`
+
+	var token Token
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := t.DB.QueryRowContext(ctx, query, refreshToken).Scan(
+		&token.ID,
+		&token.UserID,
+		&token.RefreshToken,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &token, nil
 }
 
 func DecodeRefreshToken(refreshToken string) (jwt.MapClaims, error) {
