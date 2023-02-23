@@ -180,6 +180,11 @@ func (app *application) authenticateUserHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	if !user.Activated {
+		app.methodNotAllowedResponse(w, r)
+		return
+	}
+
 	match, err := user.Password.Matches(input.Password)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
