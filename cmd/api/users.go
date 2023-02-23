@@ -4,7 +4,9 @@ import (
 	"errors"
 	"github.com/Skaifai/gophers-online-store/internal/data"
 	"github.com/Skaifai/gophers-online-store/internal/validator"
+	"github.com/google/uuid"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -59,21 +61,24 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	//token, err := app.models.Tokens.New(user.ID, 3*24*time.Hour, data.ScopeActivation)
-	//if err != nil {
-	//	app.serverErrorResponse(w, r, err)
-	//	return
-	//}
-	//app.background(func() {
-	//	data := map[string]any{
-	//		"activationToken": token.Plaintext,
-	//		"userID":          user.ID,
-	//	}
-	//	err = app.mailer.Send(user.Email, "user_welcome.tmpl", data)
-	//	if err != nil {
-	//		app.logger.PrintError(err, nil)
-	//	}
-	//})
+	uuidCode := strings.Replace(uuid.New().String(), "-", "", -1)
+	// err = app.models.Activations.Insert(user, uuidCode)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	app.background(func() {
+		data := map[string]any{
+			"name":  user.Name,
+			"email": user.Email,
+			"uuid":  uuidCode,
+		}
+		err = app.mailer.Send(user.Email, "user.tmpl", data)
+		if err != nil {
+			app.logger.PrintError(err, nil)
+		}
+	})
 	err = app.writeJSON(w, http.StatusAccepted, envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
