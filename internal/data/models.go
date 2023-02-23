@@ -17,6 +17,7 @@ type Models struct {
 	Tokens           TokenModel
 	ShoppingSessions ShoppingSessionModel
 	CartItems        CartItemModel
+	ActivationLinks  ActivationLinkModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -27,5 +28,6 @@ func NewModels(db *sql.DB) Models {
 		Tokens:           TokenModel{DB: db},
 		ShoppingSessions: ShoppingSessionModel{DB: db},
 		CartItems:        CartItemModel{DB: db},
+		ActivationLinks:  ActivationLinkModel{DB: db},
 	}
 }
