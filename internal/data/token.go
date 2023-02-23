@@ -11,6 +11,11 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+type TokenData struct {
+	UserID   int64
+	Username string
+}
+
 type Token struct {
 	ID           int64  `json:"-"`
 	UserID       int64  `json:"-"`
@@ -24,7 +29,10 @@ type TokenModel struct {
 
 func GenerateTokens(userID int64, username string) (*Token, error) {
 	token := Token{
-		UserID: userID,
+		ID:           userID,
+		UserID:       userID,
+		RefreshToken: "",
+		AccessToken:  "",
 	}
 	refreshClaims := jwt.MapClaims{
 		"user_id":  userID,
@@ -54,31 +62,36 @@ func GenerateTokens(userID int64, username string) (*Token, error) {
 	return &token, nil
 }
 
-func (t TokenModel) SaveToken(token *Token) error {
-	token, err := t.FindTokenByUserId(token.UserID)
-	if err != nil {
-		return err
-	}
-
-	if token != nil {
-		t.UpdateToken(token)
-	}
-
+func (t TokenModel) InsertToken(token *Token) error {
 	query := `INSERT INTO tokens (refresh_token, user_id)
-				 VALUES ('$1', $2)
+				 VALUES ($1, $2)
 				 RETURNING id;`
 
-	args := []any{token.RefreshToken, token.UserID}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err = t.DB.QueryRowContext(ctx, query, args...).Scan(&token.ID)
+	err := t.DB.QueryRowContext(ctx, query, &token.RefreshToken, &token.UserID).Scan(&token.ID)
 
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (t TokenModel) SaveToken(token *Token) error {
+	tokenFromDb, err := t.FindTokenByUserId(token.UserID)
+	if err != nil && !errors.Is(err, ErrRecordNotFound) {
+		return err
+	}
+
+	if tokenFromDb != nil {
+		fmt.Println(tokenFromDb)
+		t.UpdateToken(token)
+		return nil
+	}
+	result := t.InsertToken(token)
+	return result
 }
 
 func (t TokenModel) RemoveToken(refreshToken string) error {
@@ -105,15 +118,15 @@ func (t TokenModel) RemoveToken(refreshToken string) error {
 }
 
 func (t TokenModel) UpdateToken(token *Token) error {
-	query := `UPDATE tokens SET refresh_token = '$1' WHERE user_id = $2 AND id = $3`
+	query := `UPDATE tokens SET refresh_token = $1 WHERE user_id = $2`
 
-	args := []any{token.RefreshToken, token.UserID, token.ID}
+	args := []any{token.RefreshToken, token.UserID}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := t.DB.QueryRowContext(ctx, query, args...).Err()
-	if err != nil {
-		return err
+	err := t.DB.QueryRowContext(ctx, query, args...)
+	if err.Err() != nil {
+		return err.Err()
 	}
 
 	return nil
@@ -170,7 +183,7 @@ func (t TokenModel) FindToken(refreshToken string) (*Token, error) {
 }
 
 func DecodeRefreshToken(refreshToken string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("incorrect signing method: %v", token.Header["alg"])
 		}
@@ -190,7 +203,7 @@ func DecodeRefreshToken(refreshToken string) (jwt.MapClaims, error) {
 }
 
 func DecodeAccessToken(accessToken string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("incorrect signing method: %v", token.Header["alg"])
 		}
