@@ -181,7 +181,7 @@ func (app *application) authenticateUserHandler(w http.ResponseWriter, r *http.R
 	}
 
 	if !user.Activated {
-		app.methodNotAllowedResponse(w, r)
+		app.notActivatedResponse(w, r)
 		return
 	}
 
