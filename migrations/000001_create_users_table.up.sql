@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     surname varchar(20) not null,
     date_of_birth date not null,
     address text not null,
-    about_me text not null,
+    about_me text not null default 'Tell us about yourself.',
     picture_url text not null default 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
     activated boolean not null default false,
     version integer NOT NULL DEFAULT 1
