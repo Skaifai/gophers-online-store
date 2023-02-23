@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS comments (
     version integer NOT NULL DEFAULT 1
 );
 
-ALTER TABLE comments
+ALTER TABLE IF EXISTS comments
     ADD CONSTRAINT fk_comments_products FOREIGN KEY (product_id) REFERENCES products (id);
 
-ALTER TABLE comments
+ALTER TABLE IF EXISTS comments
     ADD CONSTRAINT fk_comments_users FOREIGN KEY (owner_id) REFERENCES users (id);
