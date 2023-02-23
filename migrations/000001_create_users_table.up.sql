@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS citext;
+
 CREATE TABLE IF NOT EXISTS users (
     -- id column is a 64-bit auto-incrementing integer & primary key (defines the row)
     id bigserial PRIMARY KEY,
