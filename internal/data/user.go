@@ -124,9 +124,9 @@ func (u UserModel) Insert(user *User) error {
 	return nil
 }
 
-func (u UserModel) Get(id int64) (*User, error) {
+func (u UserModel) GetById(id int64) (*User, error) {
 	query := `
-	SELECT id, role, username, email, phone_number, registration_date, 
+	SELECT id, role, username, email, phone_number, password_hash, registration_date, 
 	       name, surname, date_of_birth, address, about_me, picture_url, 
 	       activated
 	FROM users
@@ -143,6 +143,7 @@ func (u UserModel) Get(id int64) (*User, error) {
 		&user.Username,
 		&user.Email,
 		&user.PhoneNumber,
+		&user.Password.hash,
 		&user.RegistrationDate,
 		&user.Name,
 		&user.Surname,
@@ -161,4 +162,89 @@ func (u UserModel) Get(id int64) (*User, error) {
 		}
 	}
 	return &user, nil
+}
+
+func (u UserModel) GetByEmail(email string) (*User, error) {
+	query := `
+	SELECT id, role, username, email, phone_number, password_hash, registration_date, 
+	       name, surname, date_of_birth, address, about_me, picture_url, 
+	       activated
+	FROM users
+	WHERE email = $1`
+
+	var user User
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := u.DB.QueryRowContext(ctx, query, email).Scan(
+		&user.ID,
+		&user.Role,
+		&user.Username,
+		&user.Email,
+		&user.PhoneNumber,
+		&user.Password.hash,
+		&user.RegistrationDate,
+		&user.Name,
+		&user.Surname,
+		&user.DOB,
+		&user.Address,
+		&user.AboutMe,
+		&user.PictureURL,
+		&user.Activated,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+	return &user, nil
+}
+
+func (u UserModel) Update(user *User) error {
+	query := `
+	UPDATE users
+	SET role = $1, username = $2, email = $3, phone_number = $4, 
+	    password_hash = $5, registration_date = $6, name = $7, surname = $8, date_of_birth = $9, 
+	    address = $10, about_me = $11, picture_url = $12, activated = $13, 
+	    version = version + 1
+	WHERE id = $14 AND version = $15
+	RETURNING version`
+
+	args := []any{
+		user.Role,
+		user.Username,
+		user.Email,
+		user.PhoneNumber,
+		user.Password.hash,
+		user.RegistrationDate,
+		user.Name,
+		user.Surname,
+		user.DOB,
+		user.Address,
+		user.AboutMe,
+		user.PictureURL,
+		user.Activated,
+		user.ID,
+		user.Version,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := u.DB.QueryRowContext(ctx, query, args...).Scan(&user.Version)
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+			return ErrDuplicateEmail
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+	return nil
 }

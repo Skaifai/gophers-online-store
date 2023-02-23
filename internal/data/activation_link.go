@@ -64,3 +64,26 @@ func (a ActivationLinkModel) Get(uuid string) (*ActivationLink, error) {
 
 	return &activationLink, nil
 }
+
+func (a ActivationLinkModel) Update(activationLink *ActivationLink) error {
+	query := `
+	UPDATE activation_links
+	SET link = $1, activated = $2
+	WHERE user_id = $3
+	RETURNING creation_date`
+
+	args := []any{
+		activationLink.Link,
+		activationLink.Activated,
+		activationLink.UserID,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := a.DB.QueryRowContext(ctx, query, args...).Scan(&activationLink.CreationDate)
+	if err != nil {
+		return err
+	}
+	return nil
+}

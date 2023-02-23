@@ -57,7 +57,7 @@ func main() {
 	flag.IntVar(&cfg.port, "port", 7000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
-	// Get the database connection string, aka data source name (DSN)
+	// GetById the database connection string, aka data source name (DSN)
 	flag.StringVar(&cfg.db.dsn, "db-dsn", getEnvVar("DB_URL"), "PostgreSQL DSN")
 
 	// Set up restrictions for the database connections
