@@ -28,7 +28,12 @@ type User struct {
 	PhoneNumber      string       `json:"phone_number"`
 	Password         password     `json:"-"`
 	RegistrationDate time.Time    `json:"registration_date"`
-	Profile          Profile      `json:"profile"`
+	Name             string       `json:"name"`
+	Surname          string       `json:"surname"`
+	DOB              time.Time    `json:"date_of_birth"`
+	Address          string       `json:"address"`
+	AboutMe          string       `json:"about_me"`
+	PictureURL       string       `json:"picture_url"`
 	Activated        bool         `json:"activated"`
 	Version          int          `json:"-"`
 }
