@@ -1,0 +1,4 @@
+ALTER TABLE IF EXISTS tokens
+    DROP CONSTRAINT IF EXISTS fk_tokens_users;
+
+DROP TABLE IF EXISTS tokens;
