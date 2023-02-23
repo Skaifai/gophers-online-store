@@ -87,6 +87,7 @@ func main() {
 	defer db.Close()
 
 	logger.PrintInfo("database connection pool established", nil)
+
 	app := &application{
 		config: cfg,
 		logger: logger,

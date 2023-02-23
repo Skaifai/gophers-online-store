@@ -2,20 +2,13 @@ package data
 
 import (
 	"database/sql"
-	"time"
-)
-
-const (
-	ScopeActivation     = "activation"
-	ScopeAuthentication = "authentication"
 )
 
 type Token struct {
-	Plaintext string    `json:"token"`
-	Hash      []byte    `json:"-"`
-	UserID    int64     `json:"-"`
-	Expiry    time.Time `json:"expiry"`
-	Scope     string    `json:"-"'`
+	ID           int64  `json:"-"`
+	UserID       int64  `json:"-"`
+	RefreshToken string `json:"refresh_token"`
+	AccessToken  string `json:"access_token,omitempty"`
 }
 
 type TokenModel struct {

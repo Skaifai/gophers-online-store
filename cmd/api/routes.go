@@ -7,11 +7,11 @@ import (
 
 func (app *application) routes() http.Handler {
 	router := httprouter.New()
-	// router.NotFound = http.HandlerFunc(app.notFoundResponse)
-	// router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	// router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
+	router.NotFound = http.HandlerFunc(app.notFoundResponse)
+	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	// return app.recoverPanic(app.rateLimit(app.authenticate(router)))
+	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
+
 	return router
 }
