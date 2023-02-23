@@ -1,3 +1,5 @@
+github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
+github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/go-mail/mail/v2 v2.3.0 h1:wha99yf2v3cpUzD1V9ujP404Jbw2uEvs+rBJybkdYcw=
 github.com/go-mail/mail/v2 v2.3.0/go.mod h1:oE2UK8qebZAjjV1ZYUpY7FPnbi/kIU53l1dmqPRb4go=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
