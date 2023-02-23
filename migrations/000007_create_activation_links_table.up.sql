@@ -6,4 +6,4 @@ CREATE TABLE IF NOT EXISTS activation_links (
 );
 
 ALTER TABLE IF EXISTS activation_links
-    ADD CONSTRAINT fk_activations_users FOREIGN KEY (user_id) REFERENCES users (id);
+    ADD CONSTRAINT fk_activations_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
