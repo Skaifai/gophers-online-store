@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/julienschmidt/httprouter"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -126,4 +128,24 @@ func (app *application) background(function func()) {
 		}()
 		function()
 	}()
+}
+
+func (app *application) extractClaims(tokenStr string) (jwt.MapClaims, bool) {
+	hmacSecretString := getEnvVar("REFRESH_SK")
+	hmacSecret := []byte(hmacSecretString)
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		// check token signing method etc
+		return hmacSecret, nil
+	})
+
+	if err != nil {
+		return nil, false
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return claims, true
+	} else {
+		log.Printf("Invalid JWT Token")
+		return nil, false
+	}
 }

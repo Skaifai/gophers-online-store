@@ -1,0 +1,65 @@
+package main
+
+import (
+	"github.com/Skaifai/gophers-online-store/internal/data"
+	"github.com/Skaifai/gophers-online-store/internal/validator"
+	"net/http"
+	"strings"
+)
+
+func (app *application) addCommentHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		ProductID    int64  `json:"product_id"`
+		CommentOwner int64  `json:"owner_id"`
+		Text         string `json:"text"`
+	}
+
+	authorizationHeader := r.Header.Get("Authorization")
+	if authorizationHeader == "" {
+		app.UserUnauthorizedResponse(w, r)
+	}
+	// Код ниче почему-то не работает. Токен не находится.
+	refreshToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
+	//fmt.Println(refreshToken)
+	newToken, err := app.models.Tokens.FindToken(refreshToken)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+	//fmt.Println(newToken.UserID)
+	input.CommentOwner = newToken.UserID
+	// Получи юзернейм из этого токена, пожалуйста.
+
+	input.ProductID, err = app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	comment := &data.Comment{
+		ProductID:    input.ProductID,
+		CommentOwner: input.CommentOwner,
+		Text:         input.Text,
+	}
+
+	v := validator.New()
+	if data.ValidateComment(v, comment); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	err = app.models.Comments.Insert(comment)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusAccepted, envelope{"comment": comment}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}

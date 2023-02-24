@@ -29,5 +29,14 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/products/:id", app.showProductHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/products/:id", app.deleteProductHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/products/:id", app.updateProductHandler)
+
+	router.HandlerFunc(http.MethodPost, "/v1/products/:id", app.addCommentHandler)
+
+	router.HandlerFunc(http.MethodPost, "/v1/cart/:id", app.listItemsHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/cart-items", app.addItemToSessionHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/cart-items/:id", app.showItemHandler)
+	router.HandlerFunc(http.MethodPatch, "/v1/cart-items/:id", app.updateItemInSessionHandler)
+	router.HandlerFunc(http.MethodDelete, "/v1/cart-items/:id", app.removeItemFromSessionHandler)
+
 	return router
 }
