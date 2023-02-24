@@ -7,7 +7,7 @@ import (
 
 type CartItem struct {
 	ID           int64     `json:"id"`
-	SessionID    int64     `json:"user_id"`
+	SessionID    int64     `json:"session_id"`
 	ProductID    int64     `json:"product_id"`
 	Quantity     int64     `json:"quantity"`
 	CreationDate time.Time `json:"creation_date"`

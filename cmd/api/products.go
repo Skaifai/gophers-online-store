@@ -31,11 +31,7 @@ func (app *application) addProductHandler(w http.ResponseWriter, r *http.Request
 		Quantity:    input.Quantity,
 	}
 
-	fmt.Println(input.Quantity)
-
 	product.SetStatus(input.Quantity)
-
-	fmt.Println(product.IsAvailable)
 
 	v := validator.New()
 	if data.ValidateProduct(v, product); !v.Valid() {

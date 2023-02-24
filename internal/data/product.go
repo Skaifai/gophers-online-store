@@ -160,7 +160,6 @@ func (p ProductModel) Get(id int64) (*Product, error) {
 }
 
 func (p ProductModel) Update(product *Product) error {
-
 	query := `UPDATE products
 	SET name = $1, price = $2, description = $3, category = $4, quantity = $5, version = version + 1
 	WHERE id = $6
