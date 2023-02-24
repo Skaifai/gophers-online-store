@@ -64,6 +64,15 @@ func (app *application) roleMiddleware(roles []data.RoleType, next http.HandlerF
 
 		for _, s := range roles {
 			if user.Role == s {
+				if s == "OWNER" {
+					id, err := app.readIDParam(r)
+					if err != nil {
+						app.badRequestResponse(w, r, err)
+					}
+					if id == user.ID {
+						next.ServeHTTP(w, r)
+					}
+				}
 				next.ServeHTTP(w, r)
 			}
 		}

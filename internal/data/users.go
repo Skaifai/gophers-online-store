@@ -20,6 +20,7 @@ type RoleType string
 const (
 	ADMIN RoleType = "ADMIN"
 	USER           = "USER"
+	OWNER          = "OWNER"
 )
 
 type User struct {
