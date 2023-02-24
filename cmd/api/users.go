@@ -232,18 +232,23 @@ func (app *application) refreshHandler(w http.ResponseWriter, r *http.Request) {
 		app.UserUnauthorizedResponse(w, r)
 	}
 
-	refreshToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
-	_, err := data.DecodeRefreshToken(refreshToken)
+	accessToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
+	accessTokenMap, err := data.DecodeAccessToken(accessToken)
 
 	if err != nil {
 		app.UserUnauthorizedResponse(w, r)
 	}
 
-	tokenFromDb, err := app.models.Tokens.FindToken(refreshToken)
+	userId := accessTokenMap["user_id"].(float64)
+	refreshToken, err := app.models.Tokens.FindTokenByUserId(int64(userId))
 	if err != nil {
 		app.UserUnauthorizedResponse(w, r)
 	}
-	userForToken, err := app.models.Users.GetById(tokenFromDb.UserID)
+	_, err = data.DecodeRefreshToken(refreshToken.RefreshToken)
+	if err != nil {
+		app.UserUnauthorizedResponse(w, r)
+	}
+	userForToken, err := app.models.Users.GetById(refreshToken.UserID)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -271,25 +276,35 @@ func (app *application) refreshHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) logoutUserHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		RefreshToken string `json:"refreshToken"`
+	}
+
+	err := app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+	}
+
 	authorizationHeader := r.Header.Get("Authorization")
-	if authorizationHeader == "" {
-		app.UserUnauthorizedResponse(w, r)
-	}
+	accessToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
 
-	refreshToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
-
-	_, err := data.DecodeRefreshToken(refreshToken)
-
+	accessTokenMap, err := data.DecodeAccessToken(accessToken)
 	if err != nil {
 		app.UserUnauthorizedResponse(w, r)
 	}
 
-	_, err = app.models.Tokens.FindToken(refreshToken)
+	userId := accessTokenMap["user_id"].(float64)
+
+	token, err := app.models.Tokens.FindTokenByUserId(int64(userId))
 	if err != nil {
 		app.UserUnauthorizedResponse(w, r)
 	}
 
-	err = app.models.Tokens.RemoveToken(refreshToken)
+	if token.RefreshToken != input.RefreshToken {
+		app.UserUnauthorizedResponse(w, r)
+	}
+
+	err = app.models.Tokens.RemoveToken(token.RefreshToken)
 
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -299,7 +314,7 @@ func (app *application) logoutUserHandler(w http.ResponseWriter, r *http.Request
 		MaxAge: -1,
 	}
 	http.SetCookie(w, &logoutCookie)
-	app.writeJSON(w, http.StatusOK, envelope{"refreshToken": refreshToken}, nil)
+	app.writeJSON(w, http.StatusOK, envelope{"refreshToken": token.RefreshToken}, nil)
 
 }
 
