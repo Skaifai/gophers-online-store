@@ -67,7 +67,7 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
 	// GetById the database connection string, aka data source name (DSN)
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://aiyihnvbfdwvno:9d01118fa576ac32e3ed0f7cc7e096be04285c5f66bbfbe3c099c20e127bff7b@ec2-52-18-116-67.eu-west-1.compute.amazonaws.com:5432/dho8n1cmu6kot?ssl=enabled", "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://aiyihnvbfdwvno:9d01118fa576ac32e3ed0f7cc7e096be04285c5f66bbfbe3c099c20e127bff7b@ec2-52-18-116-67.eu-west-1.compute.amazonaws.com:5432/dho8n1cmu6kot", "PostgreSQL DSN")
 
 	// Set up restrictions for the database connections
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
