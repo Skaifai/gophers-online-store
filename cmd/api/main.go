@@ -96,16 +96,6 @@ func main() {
 		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
-	token, err := data.GenerateTokens(2, "hello")
-
-	if err != nil {
-		logger.PrintFatal(err, nil)
-	}
-
-	err = app.models.Tokens.SaveToken(token)
-	if err != nil {
-		logger.PrintFatal(err, nil)
-	}
 	err = app.serve()
 	if err != nil {
 		logger.PrintFatal(err, nil)
