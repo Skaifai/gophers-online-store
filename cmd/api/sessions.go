@@ -2,9 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Skaifai/gophers-online-store/internal/data"
 	"math"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -14,6 +16,49 @@ type Cart struct {
 	Total        float64          `json:"total"`
 	CartsItems   []*data.CartItem `json:"items"`
 	CreationDate time.Time        `json:"creation_date"`
+}
+
+func (app *application) recipeGenerateHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	session, err := app.models.ShoppingSessions.Get(id)
+	if err != nil {
+		return
+	}
+	items, err := app.models.ShoppingSessions.GetCartItems(id)
+	if err != nil {
+		return
+	}
+	user, err := app.models.Users.GetById(session.UserID)
+	if err != nil {
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	var itemsString string
+	for index, element := range items {
+		product, err := app.models.Products.Get(element.ProductID)
+		if err != nil {
+			return
+		}
+		itemsString += strconv.Itoa(index+1) + ". " + product.Name +
+			" => Quantity: " + strconv.Itoa(int(element.Quantity)) + ", " +
+			"Price: " + strconv.FormatFloat(product.Price, 'f', 2, 64) + " " +
+			"Total: " + strconv.FormatFloat(float64(element.Quantity)*product.Price, 'f', 2, 64) + "\n"
+	}
+	fmt.Println(itemsString)
+
+	text := fmt.Sprintf("Cart Id: %d \nBuyer: %s %s \nTotal: %.2f\n%s", session.ID, user.Name, user.Surname, session.Total, itemsString)
+	// Set the file name header
+	w.Header().Set("Content-Disposition", "attachment; filename=\"recipe.txt\"")
+	_, err = fmt.Fprint(w, text)
+	if err != nil {
+		http.Error(w, "Could not write file", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (app *application) listItemsHandler(w http.ResponseWriter, r *http.Request) {

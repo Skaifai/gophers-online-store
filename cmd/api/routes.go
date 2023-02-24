@@ -35,6 +35,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/products/:id/comments", app.listCommentsHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/cart/:id", app.listItemsHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/generate/:id", app.recipeGenerateHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/cart-items", app.addItemToSessionHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/cart-items/:id", app.showItemHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/cart-items/:id", app.updateItemInSessionHandler)
