@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 ALTER TABLE IF EXISTS comments
-    ADD CONSTRAINT fk_comments_products FOREIGN KEY (product_id) REFERENCES products (id);
+    ADD CONSTRAINT fk_comments_products FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE;
 
 ALTER TABLE IF EXISTS comments
-    ADD CONSTRAINT fk_comments_users FOREIGN KEY (owner_id) REFERENCES users (id);
+    ADD CONSTRAINT fk_comments_users FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE CASCADE;

@@ -7,4 +7,4 @@ CREATE TABLE IF NOT EXISTS shopping_sessions (
 );
 
 ALTER TABLE IF EXISTS shopping_sessions
-    ADD CONSTRAINT fk_sessions_users FOREIGN KEY (user_id) REFERENCES users (id);
+    ADD CONSTRAINT fk_sessions_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;

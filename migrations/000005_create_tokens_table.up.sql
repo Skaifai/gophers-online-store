@@ -5,4 +5,4 @@ CREATE TABLE IF NOT EXISTS tokens (
 );
 
 ALTER TABLE IF EXISTS tokens
-    ADD CONSTRAINT fk_tokens_users FOREIGN KEY (user_id) REFERENCES users (id);
+    ADD CONSTRAINT fk_tokens_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;

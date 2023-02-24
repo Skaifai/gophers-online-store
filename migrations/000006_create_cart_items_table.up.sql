@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
 );
 
 ALTER TABLE IF EXISTS cart_items
-    ADD CONSTRAINT fk_cart_sessions FOREIGN KEY (session_id) REFERENCES shopping_sessions (id);
+    ADD CONSTRAINT fk_cart_sessions FOREIGN KEY (session_id) REFERENCES shopping_sessions (id) ON DELETE CASCADE;
 
 ALTER TABLE IF EXISTS cart_items
-    ADD CONSTRAINT fk_cart_products FOREIGN KEY (product_id) REFERENCES products (id);
+    ADD CONSTRAINT fk_cart_products FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE;
