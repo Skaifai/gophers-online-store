@@ -18,8 +18,8 @@ var (
 type RoleType string
 
 const (
-	ADMIN RoleType = "admin"
-	USER           = "user"
+	ADMIN RoleType = "ADMIN"
+	USER           = "USER"
 )
 
 type User struct {
