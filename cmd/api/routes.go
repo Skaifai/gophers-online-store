@@ -17,7 +17,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/auth/register", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/auth/authenticate", app.authenticateUserHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/auth/activate/:uuid", app.activateUserHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/auth/logout", app.authMiddleware(app.logoutUserHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/auth/logout", app.authMiddleware(app.logoutUserHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/auth/refresh", app.authMiddleware(app.refreshHandler))
 
 	router.HandlerFunc(http.MethodGet, "/v1/users/:id", app.showUserHandler)
@@ -31,6 +31,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/products/:id", app.updateProductHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/products/:id", app.addCommentHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/products/:id/comments", app.listCommentsHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/cart/:id", app.listItemsHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/cart-items", app.addItemToSessionHandler)
