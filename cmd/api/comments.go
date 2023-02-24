@@ -76,6 +76,12 @@ func (app *application) listCommentsHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	input.ProductID = id
+	qs := r.URL.Query()
+	input.Filters.Page = app.readInt(qs, "page", 1)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "text", "creation_date",
+		"-id", "-text", "-creation_date"}
 
 	products, metadata, err := app.models.Comments.GetAll(input.ProductID, input.Filters)
 	if err != nil {
