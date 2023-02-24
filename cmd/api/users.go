@@ -70,6 +70,12 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	err = app.models.ShoppingSessions.Insert(user.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
 	app.background(func() {
 		data := map[string]any{
 			"name":  user.Name,

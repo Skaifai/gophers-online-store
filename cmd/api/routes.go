@@ -12,7 +12,7 @@ func (app *application) routes() http.Handler {
 	router.NotFound = http.HandlerFunc(app.notFoundResponse)
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.authMiddleware(app.healthcheckHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/auth/register", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/auth/authenticate", app.authenticateUserHandler)
@@ -31,5 +31,12 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/products/:id", app.updateProductHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/products/:id", app.addCommentHandler)
+
+	router.HandlerFunc(http.MethodPost, "/v1/cart/:id", app.listItemsHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/cart-items", app.addItemToSessionHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/cart-items/:id", app.showItemHandler)
+	router.HandlerFunc(http.MethodPatch, "/v1/cart-items/:id", app.updateItemInSessionHandler)
+	router.HandlerFunc(http.MethodDelete, "/v1/cart-items/:id", app.removeItemFromSessionHandler)
+
 	return router
 }
