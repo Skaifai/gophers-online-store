@@ -17,12 +17,14 @@ func (app *application) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		accessToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
 
-		accessToken, err := data.DecodeAccessToken(accessToken)
+		accessTokenMap, err := data.DecodeAccessToken(accessToken)
+
+		fmt.Println(accessTokenMap)
 		if err != nil {
 			app.UserUnauthorizedResponse(w, r)
 		}
 
-		fmt.Println(accessToken["user_id"].(int64))
+		fmt.Println()
 
 		next.ServeHTTP(w, r)
 	})
