@@ -21,17 +21,17 @@ type CartItemModel struct {
 
 func (i CartItemModel) Get(id int64) (*CartItem, error) {
 	query := `
-	SELECT id, session_id, product_id, quantity, creation_date
+	SELECT session_id, product_id, quantity, creation_date
 	FROM cart_items
 	WHERE id = $1`
 
 	var item CartItem
+	item.ID = id
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	err := i.DB.QueryRowContext(ctx, query, id).Scan(
-		&item.ID,
 		&item.SessionID,
 		&item.ProductID,
 		&item.Quantity,
@@ -50,16 +50,17 @@ func (i CartItemModel) Get(id int64) (*CartItem, error) {
 
 func (i CartItemModel) Insert(item *CartItem) error {
 	query := `
-	INSERT INTO card_items (sessionId, product_id, quantity)
-	VALUES ($1, $2, $3)`
+	INSERT INTO cart_items (session_id, product_id, quantity)
+	VALUES ($1, $2, $3)
+	RETURNING id`
 
 	args := []any{item.SessionID, item.ProductID, item.Quantity}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := i.DB.QueryRowContext(ctx, query, args...)
+	err := i.DB.QueryRowContext(ctx, query, args...).Scan(&item.ID)
 	if err != nil {
-		return err.Err()
+		return err
 	}
 	return nil
 }
@@ -77,7 +78,7 @@ func (i CartItemModel) Delete(id int64) error {
 		return ErrRecordNotFound
 	}
 
-	query := `DELETE FROM card_items WHERE id = $1`
+	query := `DELETE FROM cart_items WHERE id = $1`
 	result, err := i.DB.Exec(query, id)
 	if err != nil {
 		return err

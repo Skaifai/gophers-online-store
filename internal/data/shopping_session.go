@@ -37,15 +37,15 @@ func (s ShoppingSessionModel) Insert(userID int64) error {
 	return nil
 }
 
-func (s ShoppingSessionModel) Get(userID int64) (*ShoppingSession, error) {
-	query := `SELECT id, user_id, total, creation_date FROM carts WHERE user_id = $1`
+func (s ShoppingSessionModel) Get(id int64) (*ShoppingSession, error) {
+	query := `SELECT id, user_id, total, creation_date FROM shopping_sessions WHERE id = $1`
 
 	var session ShoppingSession
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := s.DB.QueryRowContext(ctx, query, userID).Scan(
+	err := s.DB.QueryRowContext(ctx, query, id).Scan(
 		&session.ID,
 		&session.UserID,
 		&session.Total,
@@ -96,7 +96,7 @@ func (s ShoppingSessionModel) GetCartItems(id int64) ([]*CartItem, error) {
 
 func (s ShoppingSessionModel) GetCartTotal(id int64) (float64, error) {
 	query := `
-	SELECT SUM(price * quantity) 
+	SELECT SUM(price * cart_items.quantity) 
 	FROM cart_items 
 	INNER JOIN products ON cart_items.product_id = products.id 
 	WHERE session_id = $1`
