@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/Skaifai/gophers-online-store/internal/data"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -21,8 +22,8 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/auth/refresh", app.authMiddleware(app.refreshHandler))
 
 	router.HandlerFunc(http.MethodGet, "/v1/users/:id", app.showUserHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/users/:id", app.updateUserHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/users/:id", app.deleteUserHandler)
+	router.HandlerFunc(http.MethodPatch, "/v1/users/:id", app.roleMiddleware([]data.RoleType{"ADMIN", "OWNER"}, app.updateUserHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/users/:id", app.roleMiddleware([]data.RoleType{"ADMIN", "OWNER"}, app.deleteUserHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/products", app.addProductHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/products", app.listProductsHandler)
