@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/Skaifai/gophers-online-store/internal/data"
 	"github.com/Skaifai/gophers-online-store/internal/validator"
 	"net/http"
@@ -21,12 +20,12 @@ func (app *application) addCommentHandler(w http.ResponseWriter, r *http.Request
 	}
 	// Код ниче почему-то не работает. Токен не находится.
 	refreshToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
-	fmt.Println(refreshToken)
+	//fmt.Println(refreshToken)
 	newToken, err := app.models.Tokens.FindToken(refreshToken)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
-	fmt.Println(newToken.UserID)
+	//fmt.Println(newToken.UserID)
 	input.CommentOwner = newToken.UserID
 	// Получи юзернейм из этого токена, пожалуйста.
 
