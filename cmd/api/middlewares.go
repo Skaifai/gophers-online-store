@@ -1,12 +1,15 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/Skaifai/gophers-online-store/internal/data"
 )
+
+type contextKey string
+
+const userContextKey contextKey = "user"
 
 func (app *application) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -17,14 +20,18 @@ func (app *application) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		accessToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
 
-		accessTokenMap, err := data.DecodeAccessToken(accessToken)
-
-		fmt.Println(accessTokenMap)
-		if err != nil {
+		if accessToken == "" {
 			app.UserUnauthorizedResponse(w, r)
 		}
 
-		fmt.Println()
+		accessTokenMap, err := data.DecodeAccessToken(accessToken)
+
+		userId := accessTokenMap["user_id"].(float64)
+		_, err = app.models.Users.GetById(int64(userId))
+
+		if err != nil {
+			app.UserUnauthorizedResponse(w, r)
+		}
 
 		next.ServeHTTP(w, r)
 	})
