@@ -86,7 +86,6 @@ func (t TokenModel) SaveToken(token *Token) error {
 	}
 
 	if tokenFromDb != nil {
-		fmt.Println(tokenFromDb)
 		t.UpdateToken(token)
 		return nil
 	}
@@ -98,7 +97,7 @@ func (t TokenModel) RemoveToken(refreshToken string) error {
 	if refreshToken == "" {
 		return ErrRecordNotFound
 	}
-	query := `DELETE FROM tokens WHERE refresh_token='$1';`
+	query := `DELETE FROM tokens WHERE refresh_token=$1;`
 
 	result, err := t.DB.Exec(query, refreshToken)
 	if err != nil {

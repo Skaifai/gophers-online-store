@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
+
 	"github.com/Skaifai/gophers-online-store/internal/validator"
 	"golang.org/x/crypto/bcrypt"
-	"time"
 )
 
 var (

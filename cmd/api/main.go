@@ -4,14 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"flag"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/Skaifai/gophers-online-store/internal/data"
 	"github.com/Skaifai/gophers-online-store/internal/jsonlog"
 	"github.com/Skaifai/gophers-online-store/internal/mailer"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"os"
-	"sync"
-	"time"
 )
 
 const version = "1.0"
@@ -95,6 +96,16 @@ func main() {
 		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
+	token, err := data.GenerateTokens(2, "hello")
+
+	if err != nil {
+		logger.PrintFatal(err, nil)
+	}
+
+	err = app.models.Tokens.SaveToken(token)
+	if err != nil {
+		logger.PrintFatal(err, nil)
+	}
 	err = app.serve()
 	if err != nil {
 		logger.PrintFatal(err, nil)

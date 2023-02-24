@@ -2,12 +2,13 @@ package main
 
 import (
 	"errors"
-	"github.com/Skaifai/gophers-online-store/internal/data"
-	"github.com/Skaifai/gophers-online-store/internal/validator"
-	"github.com/google/uuid"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/Skaifai/gophers-online-store/internal/data"
+	"github.com/Skaifai/gophers-online-store/internal/validator"
+	"github.com/google/uuid"
 )
 
 func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -196,11 +197,102 @@ func (app *application) authenticateUserHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Token Part
+	token, err := data.GenerateTokens(user.ID, user.Username)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 
+	if err = app.models.Tokens.SaveToken(token); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+	refreshTokenCookie := http.Cookie{
+		Name:     "refreshToken",
+		Value:    token.RefreshToken,
+		HttpOnly: true,
+		MaxAge:   30 * 24 * 60 * 60,
+	}
+
+	http.SetCookie(w, &refreshTokenCookie)
+	if err = app.writeJSON(w, http.StatusOK, envelope{"refreshToken": token.RefreshToken, "accessToken": token.AccessToken}, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) refreshHandler(w http.ResponseWriter, r *http.Request) {
+	authorizationHeader := r.Header.Get("Authorization")
+	if authorizationHeader == "" {
+		app.UserUnauthorizedResponse(w, r)
+	}
+
+	refreshToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
+	_, err := data.DecodeRefreshToken(refreshToken)
+
+	if err != nil {
+		app.UserUnauthorizedResponse(w, r)
+	}
+
+	tokenFromDb, err := app.models.Tokens.FindToken(refreshToken)
+	if err != nil {
+		app.UserUnauthorizedResponse(w, r)
+	}
+	userForToken, err := app.models.Users.GetById(tokenFromDb.UserID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+	token, err := data.GenerateTokens(userForToken.ID, userForToken.Username)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+	if err = app.models.Tokens.SaveToken(token); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+	refreshTokenCookie := http.Cookie{
+		Name:     "refreshToken",
+		Value:    token.RefreshToken,
+		HttpOnly: true,
+		MaxAge:   30 * 24 * 60 * 60,
+	}
+
+	http.SetCookie(w, &refreshTokenCookie)
+	if err = app.writeJSON(w, http.StatusOK, envelope{"refreshToken": token.RefreshToken, "accessToken": token.AccessToken}, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func (app *application) logoutUserHandler(w http.ResponseWriter, r *http.Request) {
+	authorizationHeader := r.Header.Get("Authorization")
+	if authorizationHeader == "" {
+		app.UserUnauthorizedResponse(w, r)
+	}
+
+	refreshToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
+
+	_, err := data.DecodeRefreshToken(refreshToken)
+
+	if err != nil {
+		app.UserUnauthorizedResponse(w, r)
+	}
+
+	_, err = app.models.Tokens.FindToken(refreshToken)
+	if err != nil {
+		app.UserUnauthorizedResponse(w, r)
+	}
+
+	err = app.models.Tokens.RemoveToken(refreshToken)
+
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+	logoutCookie := http.Cookie{
+		Name:   "refreshToken",
+		MaxAge: -1,
+	}
+	http.SetCookie(w, &logoutCookie)
+	app.writeJSON(w, http.StatusOK, envelope{"refreshToken": refreshToken}, nil)
 
 }
 
