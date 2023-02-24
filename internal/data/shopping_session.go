@@ -19,7 +19,7 @@ type ShoppingSessionModel struct {
 
 func (s ShoppingSessionModel) Insert(userID int64) error {
 	query := `
-	INSERT INTO shopping_session (user_id, total) 
+	INSERT INTO shopping_sessions (user_id, total) 
 	VALUES ($1, $2)
 	RETURNING version`
 
@@ -110,4 +110,12 @@ func (s ShoppingSessionModel) GetCartTotal(id int64) (float64, error) {
 		return 0, err
 	}
 	return total, nil
+}
+
+func (s ShoppingSessionModel) Update(session *ShoppingSession) error {
+	query := `UPDATE shopping_sessions
+	SET total = $1, version = version + 1
+	WHERE id = $2`
+
+	return s.DB.QueryRow(query, session.Total, session.ID).Err()
 }
