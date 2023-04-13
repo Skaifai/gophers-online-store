@@ -67,7 +67,7 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
 	// GetById the database connection string, aka data source name (DSN)
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://aiyihnvbfdwvno:9d01118fa576ac32e3ed0f7cc7e096be04285c5f66bbfbe3c099c20e127bff7b@ec2-52-18-116-67.eu-west-1.compute.amazonaws.com:5432/dho8n1cmu6kot", "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", getEnvVar("DB_URL"), "PostgreSQL DSN")
 
 	// Set up restrictions for the database connections
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
@@ -82,9 +82,9 @@ func main() {
 	// Google smtp-server connection
 	flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.office365.com", "SMTP host")
 	flag.IntVar(&cfg.smtp.port, "smtp-port", 587, "SMTP port")
-	flag.StringVar(&cfg.smtp.username, "smtp-username", "211121@astanait.edu.kz", "SMTP username")
-	flag.StringVar(&cfg.smtp.password, "smtp-password", "dimok456", "SMTP password")
-	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Gopher Team <211121@astanait.edu.kz>", "SMTP sender")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", getEnvVar("SMTP_USERNAME"), "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", getEnvVar("SMTP_PASSWORD"), "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Gopher Team <>", "SMTP sender")
 
 	flag.Parse()
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
