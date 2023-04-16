@@ -96,7 +96,7 @@ func (p ProductModel) GetAll(name string, category string, filters Filters) ([]*
 
 	totalRecords := 0
 
-	products := []*Product{}
+	var products []*Product
 
 	for rows.Next() {
 		var product Product
