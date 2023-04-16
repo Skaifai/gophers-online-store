@@ -131,7 +131,7 @@ func (app *application) background(function func()) {
 }
 
 func (app *application) extractClaims(tokenStr string) (jwt.MapClaims, bool) {
-	hmacSecretString := getEnvVar("REFRESH_SK")
+	hmacSecretString := GetEnvVar("REFRESH_SK")
 	hmacSecret := []byte(hmacSecretString)
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		// check token signing method etc
