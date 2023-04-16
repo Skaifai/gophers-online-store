@@ -1,68 +1,92 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"flag"
 	"fmt"
-	"os"
-	"strconv"
-	"sync"
-	"time"
-
 	"github.com/Skaifai/gophers-online-store/internal/data"
 	"github.com/Skaifai/gophers-online-store/internal/jsonlog"
 	"github.com/Skaifai/gophers-online-store/internal/mailer"
-	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strconv"
+	"testing"
 )
 
-const version = "1.0"
+func TestListProductsHandler(t *testing.T) {
+	cfg := SetupConfig()
 
-type config struct {
-	port int
-	env  string
-	db   struct {
-		dsn          string
-		maxOpenConns int
-		maxIdleConns int
-		maxIdleTime  string
+	db, err := openDB(cfg)
+	if err != nil {
+		t.Error(err)
 	}
-	limiter struct {
-		enabled bool
-		rps     float64
-		burst   int
+	defer db.Close()
+
+	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
+
+	app := SetupApplication(cfg, logger, db)
+
+	server := httptest.NewServer(http.HandlerFunc(app.listProductsHandler))
+
+	resp, err := http.Get(server.URL)
+	if err != nil {
+		t.Error(err)
 	}
-	smtp struct {
-		host     string
-		port     int
-		username string
-		password string
-		sender   string
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected 200, got %d", resp.StatusCode)
 	}
+
+	server.Close()
 }
 
-type application struct {
-	config config
-	logger *jsonlog.Logger
-	models data.Models
-	mailer mailer.Mailer
-	wg     sync.WaitGroup
+//func TestShowProductHandler(t *testing.T) {
+//	cfg := SetupConfig()
+//
+//	db, err := openDB(cfg)
+//	if err != nil {
+//		t.Error(err)
+//	}
+//	defer db.Close()
+//
+//	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
+//
+//	app := SetupApplication(cfg, logger, db)
+//
+//	server := httptest.NewServer(http.HandlerFunc(app.showProductHandler))
+//
+//	resp, err := http.Get(server.URL + "/1/")
+//	if err != nil {
+//		t.Error(err)
+//	}
+//
+//	if resp.StatusCode != http.StatusOK {
+//		t.Errorf("Expected 200, got %d", resp.StatusCode)
+//	}
+//
+//	server.Close()
+//}
+
+func SetupApplication(cfg config, logger *jsonlog.Logger, db *sql.DB) *application {
+	app := &application{
+		config: cfg,
+		logger: logger,
+		models: data.NewModels(db),
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+	}
+
+	return app
 }
 
-func getEnvVar(key string) string {
-	godotenv.Load("C:\\Users\\skaif\\Documents\\GitHub\\gophers-online-store\\.env")
-	return os.Getenv(key)
-}
-
-func main() {
+func SetupConfig() config {
 	var cfg config
 	port := os.Getenv("PORT")
 	if port == "" {
 		fmt.Println("Empty")
 		port = "7000"
 	}
-	port_int, err := strconv.Atoi(port)
+	port_int, _ := strconv.Atoi(port)
 	flag.IntVar(&cfg.port, "port", port_int, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
@@ -87,51 +111,6 @@ func main() {
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Gopher Team <>", "SMTP sender")
 
 	flag.Parse()
-	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
-	db, err := openDB(cfg)
-	if err != nil {
-		logger.PrintFatal(err, nil)
-	}
-	defer db.Close()
-
-	logger.PrintInfo("database connection pool established", nil)
-
-	app := &application{
-		config: cfg,
-		logger: logger,
-		models: data.NewModels(db),
-		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
-	}
-
-	err = app.serve()
-	if err != nil {
-		logger.PrintFatal(err, nil)
-	}
-}
-
-func openDB(cfg config) (*sql.DB, error) {
-	db, err := sql.Open("postgres", cfg.db.dsn)
-	if err != nil {
-		return nil, err
-	}
-
-	db.SetMaxIdleConns(cfg.db.maxIdleConns)
-	db.SetMaxOpenConns(cfg.db.maxOpenConns)
-
-	duration, err := time.ParseDuration(cfg.db.maxIdleTime)
-	if err != nil {
-		return nil, err
-	}
-	db.SetConnMaxIdleTime(duration)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	err = db.PingContext(ctx)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
+	return cfg
 }
