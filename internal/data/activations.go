@@ -65,6 +65,24 @@ func (a ActivationLinkModel) Get(uuid string) (*ActivationLink, error) {
 	return &activationLink, nil
 }
 
+func (a *ActivationLinkModel) GetActivationLink(id int64) (string, error) {
+	query := `
+        SELECT link
+        FROM activation_links
+        WHERE user_id = $1
+    `
+	var link string
+	err := a.DB.QueryRow(query, id).Scan(&link)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", errors.New("activation link not found")
+		} else {
+			return "", err
+		}
+	}
+	return link, nil
+}
+
 func (a ActivationLinkModel) Update(activationLink *ActivationLink) error {
 	query := `
 	UPDATE activation_links
