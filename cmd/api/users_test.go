@@ -1,94 +1,45 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
+	"github.com/Skaifai/gophers-online-store/internal/data"
 	_ "github.com/Skaifai/gophers-online-store/internal/data"
-	"github.com/Skaifai/gophers-online-store/internal/jsonlog"
+	_ "github.com/Skaifai/gophers-online-store/internal/jsonlog"
 	_ "github.com/Skaifai/gophers-online-store/internal/validator"
+	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	_ "os"
+	"strconv"
 	"testing"
 )
 
-//func TestRegisterUserHandler(t *testing.T) {
-//	newUser := &data.User{
-//		Name:        "Name",
-//		Surname:     "Surname",
-//		Username:    "username",
-//		DOB:         time.Now(),
-//		PhoneNumber: "+123456789",
-//		Address:     "Some address",
-//		Email:       "email@gmail.com",
-//	}
-//	newUser.Password.Set("somePassword")
-//
-//	newUserJson, err := json.Marshal(newUser)
-//	if err != nil {
-//		t.Errorf("Password encryption returned an error. \n%v", err)
-//		return
-//	}
-//
-//	app := SetupApplication()
-//
-//	server := httptest.NewServer(http.HandlerFunc(app.registerUserHandler))
-//
-//	resp, err := http.Post(server.URL, "application/json", strings.NewReader(string(newUserJson)))
-//	if err != nil {
-//		t.Error(err)
-//	}
-//
-//	if resp.StatusCode != http.StatusOK {
-//		t.Errorf("Expected 200, got %d", resp.StatusCode)
-//	}
-//
-//	//req := httptest.NewRequest("POST", "/v1/auth/register", strings.NewReader(string(newUserJson)))
-//	//req.Header.Add("Content-Type", "application/json")
-//	//
-//	//w := http.ResponseWriter()
-//	//
-//	//res, err :=
-//}
-
-//func TestShowUserHandler(t *testing.T) {
-//	app := SetupApplication()
-//
-//	server := httptest.NewServer(http.HandlerFunc(app.showUserHandler))
-//
-//	resp, err := http.Get(server.URL)
-//	if err != nil {
-//		t.Error(err)
-//	}
-//
-//	if resp.StatusCode != http.StatusOK {
-//		t.Errorf("Expected 200, got %d", resp.StatusCode)
-//	}
-//
-//	server.Close()
-//}
-
 func TestShowUserHandler(t *testing.T) {
-	cfg := SetupConfig()
+	var id int64 = 1
+	params := httprouter.Params{{Key: "id", Value: strconv.FormatInt(id, 10)}}
+	ctx := context.WithValue(context.Background(), httprouter.ParamsKey, params)
 
-	db, err := openDB(cfg)
+	req, err := http.NewRequestWithContext(ctx, "GET", "/v1/users/:id", nil)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	defer db.Close()
 
-	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
+	recorder := httptest.NewRecorder()
+	testingApplication.showUserHandler(recorder, req)
 
-	app := SetupApplication(cfg, logger, db)
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status 200; got %d", recorder.Code)
+	}
 
-	server := httptest.NewServer(http.HandlerFunc(app.showUserHandler))
-
-	resp, err := http.Get(server.URL + "/1")
+	var envelope map[string]data.User
+	err = json.Unmarshal(recorder.Body.Bytes(), &envelope)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("Unexpected user found, %v", envelope)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected 200, got %d", resp.StatusCode)
+	user := envelope["user"]
+	if user.Username != "Skaifai" || user.Email != "zakhep82@gmail.com" {
+		t.Errorf("Unexpected user found, %v", user)
 	}
-
-	server.Close()
 }

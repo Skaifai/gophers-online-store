@@ -165,6 +165,7 @@ func TestDBConnection(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not connect to DB!")
 	}
+	db.Close()
 }
 
 func TestSetCurrentStatus(t *testing.T) {

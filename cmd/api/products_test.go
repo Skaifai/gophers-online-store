@@ -1,33 +1,22 @@
 package main
 
 import (
-	"database/sql"
-	"flag"
-	"fmt"
+	"context"
+	"encoding/json"
 	"github.com/Skaifai/gophers-online-store/internal/data"
-	"github.com/Skaifai/gophers-online-store/internal/jsonlog"
-	"github.com/Skaifai/gophers-online-store/internal/mailer"
+	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strconv"
+	"strings"
 	"testing"
 )
 
+var id int64 = 10
+
 func TestListProductsHandler(t *testing.T) {
-	cfg := SetupConfig()
 
-	db, err := openDB(cfg)
-	if err != nil {
-		t.Error(err)
-	}
-	defer db.Close()
-
-	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
-
-	app := SetupApplication(cfg, logger, db)
-
-	server := httptest.NewServer(http.HandlerFunc(app.listProductsHandler))
+	server := httptest.NewServer(http.HandlerFunc(testingApplication.listProductsHandler))
 
 	resp, err := http.Get(server.URL)
 	if err != nil {
@@ -37,80 +26,129 @@ func TestListProductsHandler(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected 200, got %d", resp.StatusCode)
 	}
-
+	//fmt.Println(resp.Body)
 	server.Close()
 }
 
-//func TestShowProductHandler(t *testing.T) {
-//	cfg := SetupConfig()
-//
-//	db, err := openDB(cfg)
-//	if err != nil {
-//		t.Error(err)
-//	}
-//	defer db.Close()
-//
-//	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
-//
-//	app := SetupApplication(cfg, logger, db)
-//
-//	server := httptest.NewServer(http.HandlerFunc(app.showProductHandler))
-//
-//	resp, err := http.Get(server.URL + "/1/")
-//	if err != nil {
-//		t.Error(err)
-//	}
-//
-//	if resp.StatusCode != http.StatusOK {
-//		t.Errorf("Expected 200, got %d", resp.StatusCode)
-//	}
-//
-//	server.Close()
-//}
+func TestAddProductHandler(t *testing.T) {
+	var input = `
+		{
+			"name": "Football",
+			"price": 4000,
+			"description": "description4",
+			"category": "Sports",
+			"quantity": 0
+		}`
 
-func SetupApplication(cfg config, logger *jsonlog.Logger, db *sql.DB) *application {
-	app := &application{
-		config: cfg,
-		logger: logger,
-		models: data.NewModels(db),
-		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+	server := httptest.NewServer(http.HandlerFunc(testingApplication.addProductHandler))
+	defer server.Close()
+	//req, err := http.NewRequest("POST", server.URL, strings.NewReader(string(body)))
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
+
+	resp, err := http.Post(server.URL, "application/json", strings.NewReader(input))
+	if err != nil {
+		t.Error(err)
 	}
 
-	return app
+	if resp.StatusCode != http.StatusAccepted {
+		t.Errorf("Expected 200, got %d", resp.StatusCode)
+	}
 }
 
-func SetupConfig() config {
-	var cfg config
-	port := os.Getenv("PORT")
-	if port == "" {
-		fmt.Println("Empty")
-		port = "7000"
+func TestShowProductHandler(t *testing.T) {
+	params := httprouter.Params{{Key: "id", Value: strconv.FormatInt(id, 10)}}
+	ctx := context.WithValue(context.Background(), httprouter.ParamsKey, params)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", "/v1/products/:id", nil)
+	if err != nil {
+		t.Fatal(err)
 	}
-	port_int, _ := strconv.Atoi(port)
-	flag.IntVar(&cfg.port, "port", port_int, "API server port")
-	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
-	// GetById the database connection string, aka data source name (DSN)
-	flag.StringVar(&cfg.db.dsn, "db-dsn", getEnvVar("DB_URL"), "PostgreSQL DSN")
+	recorder := httptest.NewRecorder()
+	testingApplication.showProductHandler(recorder, req)
 
-	// Set up restrictions for the database connections
-	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
-	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
-	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max idle time")
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status 200; got %d", recorder.Code)
+	}
 
-	// Set up limitations for application
-	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
-	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
-	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
+	var envelope map[string]data.Product
+	err = json.Unmarshal(recorder.Body.Bytes(), &envelope)
+	if err != nil {
+		t.Fatalf("Couldn't unmarshal")
+	}
 
-	// Google smtp-server connection
-	flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.office365.com", "SMTP host")
-	flag.IntVar(&cfg.smtp.port, "smtp-port", 587, "SMTP port")
-	flag.StringVar(&cfg.smtp.username, "smtp-username", getEnvVar("SMTP_USERNAME"), "SMTP username")
-	flag.StringVar(&cfg.smtp.password, "smtp-password", getEnvVar("SMTP_PASSWORD"), "SMTP password")
-	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Gopher Team <>", "SMTP sender")
+	product := envelope["product"]
+	if product.Name != "Football" || product.Category != "Sports" {
+		t.Errorf("Unexpected product found, %v", product)
+	}
+}
 
-	flag.Parse()
+func TestUpdateProductHandler(t *testing.T) {
+	var input = `
+		{
+			"name": "Basketball",
+			"price": 3000,
+			"description": "description4",
+			"category": "Sports",
+			"quantity": 0
+		}`
 
-	return cfg
+	params := httprouter.Params{{Key: "id", Value: strconv.FormatInt(id, 10)}}
+	ctx := context.WithValue(context.Background(), httprouter.ParamsKey, params)
+
+	req, err := http.NewRequestWithContext(ctx, "PATCH", "/v1/products/:id", strings.NewReader(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	recorder := httptest.NewRecorder()
+	testingApplication.updateProductHandler(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status 200; got %d", recorder.Code)
+	}
+
+	var envelope map[string]data.Product
+	err = json.Unmarshal(recorder.Body.Bytes(), &envelope)
+	if err != nil {
+		t.Fatalf("Couldn't unmarshal")
+	}
+
+	product := envelope["product"]
+	if product.Name != "Basketball" || product.Category != "Sports" {
+		t.Errorf("Unexpected product found, %v", product)
+	}
+}
+
+func TestDeleteProductHandler(t *testing.T) {
+	params := httprouter.Params{{Key: "id", Value: strconv.FormatInt(id, 10)}}
+	ctx := context.WithValue(context.Background(), httprouter.ParamsKey, params)
+
+	req, err := http.NewRequestWithContext(ctx, "DELETE", "/v1/products/:id", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	recorder := httptest.NewRecorder()
+	testingApplication.deleteProductHandler(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status 200; got %d", recorder.Code)
+	}
+
+	if recorder.Body.String() != `{"message":"product successfully deleted"}`+"\n" {
+		t.Errorf("Unexpected response; got %s", recorder.Body.String())
+	}
+
+	var envelope envelope
+	err = json.Unmarshal(recorder.Body.Bytes(), &envelope)
+	if err != nil {
+		t.Fatalf("Couldn't unmarshal")
+	}
+	responseMessage := envelope["message"]
+	if responseMessage != "product successfully deleted" {
+		t.Errorf("Unexpected response; got %s", recorder.Body.String())
+	}
 }
