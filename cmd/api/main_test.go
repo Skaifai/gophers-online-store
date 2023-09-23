@@ -10,6 +10,30 @@ import (
 
 var testApp = newTestApplication()
 
+func applicationInstance() *application {
+	var cfg = config{
+		port: 7000,
+		env:  "test",
+		db: struct {
+			dsn          string
+			maxOpenConns int
+			maxIdleConns int
+			maxIdleTime  string
+		}{
+			dsn:          "postgres://postgres:gtr35@localhost/greenlight?sslmode=disable",
+			maxOpenConns: 25, maxIdleConns: 25, maxIdleTime: "25m",
+		},
+	}
+
+	db, _ := openDB(cfg)
+
+	app := &application{
+		config: cfg,
+		models: data.NewModels(db),
+	}
+	return app
+}
+
 func newTestApplication() *application {
 	var cfg = config{
 		port: 7000,
@@ -29,18 +53,6 @@ func newTestApplication() *application {
 			burst   int
 		}{
 			enabled: true, rps: 2, burst: 4,
-		},
-		smtp: struct {
-			host     string
-			port     int
-			username string
-			password string
-			sender   string
-		}{
-			host: "smtp.office365.com", port: 587,
-			username: "211121@astanait.edu.kz",
-			password: "dimok456",
-			sender:   "Gophers Team 211121@astanait.edu.kz",
 		},
 	}
 

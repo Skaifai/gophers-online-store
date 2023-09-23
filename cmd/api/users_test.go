@@ -127,8 +127,7 @@ func TestShowUserHandler(t *testing.T) {
 }
 
 func TestUpdateUserHandler(t *testing.T) {
-	params := httprouter.Params{{Key: "id", Value: strconv.FormatInt(id, 10)}}
-	ctx := context.WithValue(context.Background(), httprouter.ParamsKey, params)
+	ctx := context.WithValue(context.Background(), httprouter.ParamsKey, httprouter.Params{{Key: "id", Value: strconv.FormatInt(id, 10)}})
 	body := `{"username": "dimok"}`
 
 	req, err := http.NewRequestWithContext(ctx, "PATCH", "/v1/users/:id", strings.NewReader(body))
